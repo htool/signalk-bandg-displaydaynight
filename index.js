@@ -36,12 +36,12 @@ module.exports = function(app) {
           dayNight = u['values'][0]['value'];
           if (dayNight == 'night') {
             setDisplayMode(dayNight);
-            setBacklightLevel(options.MFD['nightLevel']);
-            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.MFD['nightLevel']);
+            setBacklightLevel(options.Display['nightLevel']);
+            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Display['nightLevel']);
           } else {
             setDisplayMode(dayNight);
-            setBacklightLevel(options.MFD['dayLevel']);
-            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.MFD['dayLevel']);
+            setBacklightLevel(options.Display['dayLevel']);
+            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Display['dayLevel']);
           }
         });
       }
@@ -63,12 +63,12 @@ module.exports = function(app) {
     }
 
     function intToHex(integer) {
-      var hex = padd((integer & 0xff).toString(16), 2) + "," + padd(((integer >> 8) & 0xff).toString(16), 2)
+      var hex = padd((integer & 0xff).toString(16), 2)
       return hex
     }
 
     function setDisplayMode(mode) {
-      var PGN130845_dayNight = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,26,00,01,%s,ff,ff,ff,ff"; // 02 = day, 04 = night
+      var PGN130845_dayNight = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,26,00,01,%s,ff,ff,ff"; // 02 = day, 04 = night
       if (mode == 'day') {
         var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, '02');
         sendN2k([msg]);
@@ -80,7 +80,7 @@ module.exports = function(app) {
     }
 
     function setBacklightLevel(level) {
-      var PGN130845_backlightLevel = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,12,00,01,%s,ff,ff,ff,ff"; 
+      var PGN130845_backlightLevel = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,12,00,01,%s,ff,ff,ff"; 
       var msg = util.format(PGN130845_backlightLevel, (new Date()).toISOString(), sourceAddress, intToHex(level*10));
       sendN2k([msg]);
     }
@@ -113,7 +113,7 @@ module.exports = function(app) {
     title: PLUGIN_NAME,
     type: 'object',
     properties: {
-      MFD: {
+      Display: {
         type: 'object',
         properties: {
           dayLevel: {
