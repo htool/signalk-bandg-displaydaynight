@@ -12,6 +12,7 @@ Object.freeze(eSettingId);
 
 module.exports = function(app) {
   var plugin = {};
+  var ws;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
@@ -19,16 +20,22 @@ module.exports = function(app) {
 
   plugin.start = function(options, restartPlugin) {
     plugin.options = options;
+    var websocketOpen = false;
     var dayNight;
     var mfdIP = options.MFD['ip'];
     app.debug('mfdIP: ' + JSON.stringify(mfdIP));
     var wsurl = "ws://" + mfdIP + ":2053";
     app.debug('wsurl: ' + wsurl);
-    var ws = new WebSocket(wsurl);
     app.debug('Plugin started');
 
+    function connectWs () {
+      ws = new WebSocket(wsurl);
+    }
+
+    connectWs();
+
     let localSubscription = {
-      context: 'vessels.self', // Get data for all contexts
+      context: 'vessels.self',
       subscribe: [{
         path: 'environment.sun' // For now
       }]
@@ -43,13 +50,14 @@ module.exports = function(app) {
       delta => {
         delta.updates.forEach(u => {
           dayNight = u['values'][0]['value'];
-          app.debug('Current mode: %s', dayNight);
           if (dayNight == 'night') {
 		        setSetting(eSettingId.NightMode, true);
-		        setSetting(eSettingId.BacklightLevel, 1); // 0 - 10
+		        setSetting(eSettingId.BacklightLevel, options.MFD['nightLevel']);
+            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.MFD['nightLevel']);
           } else {
 		        setSetting(eSettingId.NightMode, false);
-		        setSetting(eSettingId.BacklightLevel, 2);
+		        setSetting(eSettingId.BacklightLevel, options.MFD['dayLevel']);
+            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.MFD['dayLevel']);
           }
         });
       }
@@ -101,8 +109,12 @@ module.exports = function(app) {
 		}
 		
 		function send (obj) {
-		  app.debug("Sending: " + JSON.stringify(obj));
-		  ws.send(JSON.stringify(obj));
+      if (websocketOpen) {
+		    app.debug("Sending: " + JSON.stringify(obj));
+		    ws.send(JSON.stringify(obj));
+      } else {
+		    app.debug("Can't send: " + JSON.stringify(obj) + " because websocket isn't open");
+      }
 		}
 		
 		function checkNightMode () {
@@ -124,6 +136,7 @@ module.exports = function(app) {
 		
 		ws.onopen = () => {
 		  app.debug(`WebSocket %s connected`, wsurl);
+      websocketOpen = true;
 		  // requestSetting([eSettingId.BacklightLevel], true);
 		  // requestSetting([eSettingId.NightMode], true);
 		  // setSetting(eSettingId.NightMode, false);
@@ -137,6 +150,12 @@ module.exports = function(app) {
 		  app.debug("Received: " + JSON.stringify(e.data))
 		  msg = JSON.parse(e.data);
 		}
+
+    ws.onclose = () => {
+      websocketOpen = false;
+		  app.debug("Websocket closed");
+      connectWs();
+    }
 		
     app.setPluginStatus('Running');
   };
@@ -157,7 +176,7 @@ module.exports = function(app) {
 
   plugin.stop = function() {
     // Here we put logic we need when the plugin stops
-    //bot.close();
+    ws.close();
     app.debug('Plugin stopped');
     unsubscribes.forEach(f => f());
     app.setPluginStatus('Stopped');
@@ -173,6 +192,16 @@ module.exports = function(app) {
           ip: {
             type: 'string',
             title: 'B&G MFD IP'
+          },
+          dayLevel: {
+            type: 'number',
+            title: 'Backlight level in day mode (1-10)',
+            default: 2
+          },
+          nightLevel: {
+            type: 'number',
+            title: 'Backlight level in day mode (1-10)',
+            default: 3
           }
         }
       }
