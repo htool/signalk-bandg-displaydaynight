@@ -1,6 +1,6 @@
 {
   "name": "signalk-bandg-displaydaynight",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Auto adjust B&G display mode",
   "main": "index.js",
   "scripts": {
@@ -13,5 +13,8 @@
     "signalk-category-instruments",
     "signalk-category-chart-plotters",
     "signalk-category-hardware"
-  ]
+  ],
+  "dependencies": {
+    "util": "^0.12.4"
+  }
 }

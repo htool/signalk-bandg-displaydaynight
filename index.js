@@ -1,6 +1,8 @@
+const util = require('util')
 const PLUGIN_ID = 'signalk-bandg-displaydayNight';
 const PLUGIN_NAME = 'Auto adjust B&G display mode';
 const WebSocket = require('ws')
+var sourceAddress = 1; // Gets overwritten by candevice
 
 var unsubscribes = [];
 
@@ -9,6 +11,7 @@ var eSettingId = {
     NightMode: 2,
 };
 Object.freeze(eSettingId);
+
 
 module.exports = function(app) {
   var plugin = {};
@@ -51,12 +54,16 @@ module.exports = function(app) {
         delta.updates.forEach(u => {
           dayNight = u['values'][0]['value'];
           if (dayNight == 'night') {
-		        setSetting(eSettingId.NightMode, true);
-		        setSetting(eSettingId.BacklightLevel, options.MFD['nightLevel']);
+		        // setSetting(eSettingId.NightMode, true);
+            setDisplayMode(dayNight);
+		        // setSetting(eSettingId.BacklightLevel, options.MFD['nightLevel']);
+            setBacklightLevel(options.MFD['nightLevel']);
             app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.MFD['nightLevel']);
           } else {
-		        setSetting(eSettingId.NightMode, false);
-		        setSetting(eSettingId.BacklightLevel, options.MFD['dayLevel']);
+		        // setSetting(eSettingId.NightMode, false);
+            setDisplayMode(dayNight);
+		        // setSetting(eSettingId.BacklightLevel, options.MFD['dayLevel']);
+            setBacklightLevel(options.MFD['dayLevel']);
             app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.MFD['dayLevel']);
           }
         });
@@ -137,9 +144,6 @@ module.exports = function(app) {
 		ws.onopen = () => {
 		  app.debug(`WebSocket %s connected`, wsurl);
       websocketOpen = true;
-		  // requestSetting([eSettingId.BacklightLevel], true);
-		  // requestSetting([eSettingId.NightMode], true);
-		  // setSetting(eSettingId.NightMode, false);
 		}
 		 
 		ws.onerror = (error) => {
@@ -155,6 +159,42 @@ module.exports = function(app) {
       websocketOpen = false;
 		  app.debug("Websocket closed");
       connectWs();
+    }
+
+    function sendN2k(msgs) {
+      app.debug("n2k_msg: " + msgs)
+      msgs.map(function(msg) { app.emit('nmea2000out', msg)})
+    }
+
+    function padd(n, p, c)
+    {
+      var pad_char = typeof c !== 'undefined' ? c : '0';
+      var pad = new Array(1 + p).join(pad_char);
+      return (pad + n).slice(-pad.length);
+    }
+
+    function intToHex(integer) {
+      var hex = padd((integer & 0xff).toString(16), 2) + "," + padd(((integer >> 8) & 0xff).toString(16), 2)
+      return hex
+    }
+
+
+    function setDisplayMode(mode) {
+      var PGN130845_dayNight = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,26,00,01,%s,ff,ff,ff,ff"; // 02 = day, 04 = night
+      if (mode == 'day') {
+        var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, '02');
+        sendN2k([msg]);
+      }
+      if (mode == 'night') {
+        var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, '04');
+        sendN2k([msg]);
+      }
+    }
+
+    function setBacklightLevel(level) {
+      var PGN130845_backlightLevel = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,12,00,01,%s,ff,ff,ff,ff"; 
+      var msg = util.format(PGN130845_backlightLevel, (new Date()).toISOString(), sourceAddress, intToHex(level*10));
+      sendN2k([msg]);
     }
 		
     app.setPluginStatus('Running');
