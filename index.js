@@ -46,8 +46,10 @@ module.exports = function(app) {
           app.debug('Current mode: %s', dayNight);
           if (dayNight == 'night') {
 		        setSetting(eSettingId.NightMode, true);
+		        setSetting(eSettingId.BacklightLevel, 1); // 0 - 10
           } else {
 		        setSetting(eSettingId.NightMode, false);
+		        setSetting(eSettingId.BacklightLevel, 2);
           }
         });
       }
