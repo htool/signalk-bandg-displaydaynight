@@ -103,7 +103,6 @@ module.exports = function(app) {
 
   plugin.stop = function() {
     // Here we put logic we need when the plugin stops
-    ws.close();
     app.debug('Plugin stopped');
     unsubscribes.forEach(f => f());
     app.setPluginStatus('Stopped');
@@ -114,6 +113,7 @@ module.exports = function(app) {
     type: 'object',
     properties: {
       Display: {
+        description: 'This plugin will adjust the display mode based on `environment.mode` (day/night). Below the backlight level can be set for each.',
         type: 'object',
         properties: {
           dayLevel: {
