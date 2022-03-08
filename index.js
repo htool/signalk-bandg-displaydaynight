@@ -123,7 +123,7 @@ module.exports = function(app) {
           },
           nightLevel: {
             type: 'number',
-            title: 'Backlight level in day mode (1-10)',
+            title: 'Backlight level in night mode (1-10)',
             default: 3
           }
         }
