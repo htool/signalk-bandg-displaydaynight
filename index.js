@@ -15,13 +15,25 @@ module.exports = function(app) {
 
   plugin.start = function(options, restartPlugin) {
     plugin.options = options;
-    var dayNight;
     app.debug('Plugin started');
+    app.debug('Schema: %s', JSON.stringify(options));
+
+    var runMode = options['source'];
+    var luxPath = options.Lux['path'];
+
+    app.debug('runMode: %s', runMode);
 
     let localSubscription = {
       context: 'vessels.self',
-      subscribe: [{
-        path: 'environment.mode' // For now
+      subscribe: [
+      {
+        path: 'environment.mode'         // For mode based
+      },
+      {
+        path: 'environment.sun'          // For sun based
+      },
+      {
+        path: luxPath                    // For lux based
       }]
     };
 
@@ -33,15 +45,35 @@ module.exports = function(app) {
       },
       delta => {
         delta.updates.forEach(u => {
-          dayNight = u['values'][0]['value'];
-          if (dayNight == 'night') {
-            setDisplayMode(dayNight);
-            setBacklightLevel(options.Display['nightLevel']);
-            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Display['nightLevel']);
-          } else {
-            setDisplayMode(dayNight);
-            setBacklightLevel(options.Display['dayLevel']);
-            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Display['dayLevel']);
+          app.debug('u: %s', JSON.stringify(u));
+          switch (runMode) {
+            // Schema: {"source":"mode","Mode":{"dayLevel":1,"nightLevel":1},"Sun":{"dusk":{"mode":"day","backlight":1},"day":{"mode":"day","backlight":1},"sunset":{"mode":"night","backlight":1},"dawn":{"mode":"night","backlight":1},"night":{"mode":"night","backlight":1}},"Lux":{"path":"environment.outside.lux"}}
+            case 'mode':
+              if (u['values'][0]['path'] != 'environment.mode') break;
+              var dayNight = u['values'][0]['value'];
+		          if (dayNight == 'night') {
+		            setDisplayMode(dayNight);
+		            setBacklightLevel(options.Mode['nightLevel']);
+		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['nightLevel']);
+		          } else {
+		            setDisplayMode(dayNight);
+		            setBacklightLevel(options.Mode['dayLevel']);
+		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['dayLevel']);
+              }
+              break;
+            case 'sun':
+              if (u['values'][0]['path'] != 'environment.sun') break;
+              var sunMode = u['values'][0]['value'];
+		          app.debug('environment.sun: %s', sunMode);
+              var mode = options.Sun[sunMode]['mode'];
+              var backlightLevel = options.Sun[sunMode]['backlight'];
+		          app.debug('Setting display mode to %s and backlight level to %s', mode, backlightLevel);
+		          setDisplayMode(mode);
+		          setBacklightLevel(backlightLevel);
+              break;
+            case 'lux':
+              if (u['values'][0]['path'] != luxPath) break;
+              break;
           }
         });
       }
@@ -112,19 +144,193 @@ module.exports = function(app) {
     title: PLUGIN_NAME,
     type: 'object',
     properties: {
-      Display: {
-        description: 'This plugin will adjust the display mode based on `environment.mode` (day/night). Below the backlight level can be set for each.',
+      source: {
+        type: 'string',
+        title: 'Select which source should be used to auto adjust the displays',
+        enum: ['mode', 'sun', 'lux'],
+        enumNames: ['Mode based', 'Sun based', 'Lux based'],
+        default: 'mode'
+      },
+
+      Mode: {
+        title: 'Mode based settings',
+        description: 'Adjust the display mode based on `environment.mode` (derived-data). Below the backlight level can be set for day and night mode.',
         type: 'object',
         properties: {
           dayLevel: {
             type: 'number',
             title: 'Backlight level in day mode (1-10)',
-            default: 2
+            default: 6,
           },
           nightLevel: {
             type: 'number',
             title: 'Backlight level in night mode (1-10)',
-            default: 3
+            default: 3,
+          }
+        }
+      },
+
+      Sun: {
+        title: 'Sun based settings',
+        description: 'Adjust the display mode based on `environment.sun` (derived-data). Below the display mode and backlight level can be set for each mode.',
+        type: 'object',
+        properties: {
+
+          dawn: {
+            type: 'object',
+            title: 'Dawn',
+            properties: {
+              mode: {
+                type: 'string',
+                title: 'Select day or night mode',
+                enum: ['day', 'night'],
+                enumNames: ['Day', 'Night'],
+                default: 'night'
+              },
+              backlight: {
+                type: 'number',
+                title: 'Backlight level in nightmode (1-10)',
+                default: 4,
+              },
+            },
+          },
+
+          sunrise: {
+            type: 'object',
+            title: 'Sunrise',
+            properties: {
+              mode: {
+                type: 'string',
+                title: 'Select day or night mode',
+                enum: ['day', 'night'],
+                enumNames: ['Day', 'Night'],
+                default: 'day'
+              },
+              backlight: {
+                type: 'number',
+                title: 'Backlight level in nightmode (1-10)',
+                default: 4,
+              },
+            },
+          },
+
+          day: {
+            type: 'object',
+            title: 'Day',
+            properties: {
+              mode: {
+                type: 'string',
+                title: 'Select day or night mode',
+                enum: ['day', 'night'],
+                enumNames: ['Day', 'Night'],
+                default: 'day'
+              },
+              backlight: {
+                type: 'number',
+                title: 'Backlight level in day mode (1-10)',
+                default: 6,
+              },
+            },
+          },
+
+          sunset: {
+            type: 'object',
+            title: 'Sunset',
+            properties: {
+              mode: {
+                type: 'string',
+                title: 'Select day or night mode',
+                enum: ['day', 'night'],
+                enumNames: ['Day', 'Night'],
+                default: 'day'
+              },
+              backlight: {
+                type: 'number',
+                title: 'Backlight level in nightmode (1-10)',
+                default: 4,
+              },
+            },
+          },
+
+          dusk: {
+            type: 'object',
+            title: 'Dusk',
+            properties: {
+              mode: {
+                type: 'string',
+                title: 'Select day or night mode',
+                enum: ['day', 'night'],
+                enumNames: ['Day', 'Night'],
+                default: 'night'
+              },
+              backlight: {
+                type: 'number',
+                title: 'Backlight level in day mode (1-10)',
+                default: 4,
+              },
+            },
+          },
+
+          night: {
+            type: 'object',
+            title: 'Night',
+            properties: {
+              mode: {
+                type: 'string',
+                title: 'Select day or night mode',
+                enum: ['day', 'night'],
+                enumNames: ['Day', 'Night'],
+                default: 'night'
+              },
+              backlight: {
+                type: 'number',
+                title: 'Backlight level in nightmode (1-10)',
+                default: 2,
+              },
+            },
+          },
+
+        },
+      },
+            
+      Lux: {
+        title: 'Lux based settings',
+        description: 'Adjust the display mode based on `environment.outside.lux`. Below the display mode and backlight level can be added per lux range.',
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            title: 'Path to outside lux value',
+            default: 'environment.outside.lux'
+          },
+          table: {
+            type: 'array',
+            title: 'Table entries',
+            items: {
+              type: 'object',
+              properties: {
+                luxMin: {
+                  type: 'number',
+                  title: 'Minimal lux (lux) level'
+                },
+                luxMax: {
+                  type: 'number',
+                  title: 'Max lux (lux) level'
+                },
+                dayNight: {
+                  type: 'string',
+                  title: 'Mode',
+                  enum: ['day', 'night'],
+                  enumNames: ['Day', 'Night'],
+                  default: 'day'
+                },
+                backlightLevel: {
+                  type: 'number',
+                  title: 'Backlight level (1-10)',
+                  default: 2
+                }
+              }
+            }
           }
         }
       }
