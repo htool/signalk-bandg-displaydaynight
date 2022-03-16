@@ -19,7 +19,11 @@ module.exports = function(app) {
     app.debug('Schema: %s', JSON.stringify(options));
 
     var runMode = options['source'];
-    var luxPath = options.Lux['path'];
+    var luxPath;
+    if (typeof options.Lux != 'undefined') {
+      luxPath = options.Lux['path'];
+    }
+
 
     app.debug('runMode: %s', runMode);
 
