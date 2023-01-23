@@ -51,7 +51,6 @@ module.exports = function(app) {
         delta.updates.forEach(u => {
           app.debug('u: %s', JSON.stringify(u));
           switch (runMode) {
-            // Schema: {"source":"mode","Mode":{"dayLevel":1,"nightLevel":1},"Sun":{"dusk":{"mode":"day","backlight":1},"day":{"mode":"day","backlight":1},"sunset":{"mode":"night","backlight":1},"dawn":{"mode":"night","backlight":1},"night":{"mode":"night","backlight":1}},"Lux":{"path":"environment.outside.lux"}}
             case 'mode':
               if (u['values'][0]['path'] != 'environment.mode') break;
               var dayNight = u['values'][0]['value'];
@@ -59,10 +58,12 @@ module.exports = function(app) {
 		            setDisplayMode(dayNight);
 		            setBacklightLevel(options.Mode['nightLevel']);
 		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['nightLevel']);
+                sendUpdate(dayNight, options.Mode['nightLevel'])
 		          } else {
 		            setDisplayMode(dayNight);
 		            setBacklightLevel(options.Mode['dayLevel']);
 		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['dayLevel']);
+                sendUpdate(dayNight, options.Mode['dayLevel'])
               }
               break;
             case 'sun':
@@ -74,6 +75,7 @@ module.exports = function(app) {
 		          app.debug('Setting display mode to %s and backlight level to %s', mode, backlightLevel);
 		          setDisplayMode(mode);
 		          setBacklightLevel(backlightLevel);
+              sendUpdate(mode, backlightLevel)
               break;
             case 'lux':
               if (u['values'][0]['path'] != luxPath) break;
@@ -120,7 +122,26 @@ module.exports = function(app) {
       var msg = util.format(PGN130845_backlightLevel, (new Date()).toISOString(), sourceAddress, intToHex(level*10));
       sendN2k([msg]);
     }
-		
+
+    function sendUpdate(mode, level) {
+      var update = [{
+        path: "environment.displayMode",
+        value: {
+          mode: mode,
+          backlight: level
+        }
+      }]
+
+      app.debug('Updating with: ' + JSON.stringify(update))
+		  app.handleMessage(plugin.id, {
+        updates: [
+          {
+            values: update
+          }
+        ]
+      })
+    }
+
     app.setPluginStatus('Running');
   };
 
