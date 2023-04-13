@@ -2,6 +2,14 @@ const util = require('util')
 const PLUGIN_ID = 'signalk-bandg-displaydayNight';
 const PLUGIN_NAME = 'Auto adjust B&G display mode';
 var sourceAddress = 1; // Gets overwritten by candevice
+var networkGroups = {
+  'Default' : '01',
+  '1'       : '02',
+  '2'       : '03',
+  '3'       : '04',
+  '4'       : '05',
+  '5'       : '06',
+  '6'       : '07'}
 
 var unsubscribes = [];
 
@@ -24,8 +32,8 @@ module.exports = function(app) {
       luxPath = options.Lux['path'];
     }
 
-
-    app.debug('runMode: %s', runMode);
+    
+    app.debug(`runMode: ${runMode} Network group: ${options.group}`);
 
     let localSubscription = {
       context: 'vessels.self',
@@ -53,32 +61,35 @@ module.exports = function(app) {
           switch (runMode) {
             case 'mode':
               if (u['values'][0]['path'] != 'environment.mode') break;
+              var group = options.group
               var dayNight = u['values'][0]['value'];
 		          if (dayNight == 'night') {
-		            setDisplayMode(dayNight);
-		            setBacklightLevel(options.Mode['nightLevel']);
-		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['nightLevel']);
+		            setDisplayMode(dayNight, group)
+		            setBacklightLevel(options.Mode['nightLevel'], group)
+		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['nightLevel'])
                 sendUpdate(dayNight, options.Mode['nightLevel'])
 		          } else {
-		            setDisplayMode(dayNight);
-		            setBacklightLevel(options.Mode['dayLevel']);
-		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['dayLevel']);
+		            setDisplayMode(dayNight, group)
+		            setBacklightLevel(options.Mode['dayLevel'], group)
+		            app.debug('Setting display mode to %s and backlight level to %s', dayNight, options.Mode['dayLevel'])
                 sendUpdate(dayNight, options.Mode['dayLevel'])
               }
               break;
             case 'sun':
               if (u['values'][0]['path'] != 'environment.sun') break;
+              var group = options.group
               var sunMode = u['values'][0]['value'];
 		          app.debug('environment.sun: %s', sunMode);
               var mode = options.Sun[sunMode]['mode'];
               var backlightLevel = options.Sun[sunMode]['backlight'];
 		          app.debug('Setting display mode to %s and backlight level to %s', mode, backlightLevel);
-		          setDisplayMode(mode);
-		          setBacklightLevel(backlightLevel);
+		          setDisplayMode(mode, group);
+		          setBacklightLevel(backlightLevel, group);
               sendUpdate(mode, backlightLevel)
               break;
             case 'lux':
               if (u['values'][0]['path'] != luxPath) break;
+              var group = options.group
               break;
           }
         });
@@ -105,21 +116,23 @@ module.exports = function(app) {
       return hex
     }
 
-    function setDisplayMode(mode) {
-      var PGN130845_dayNight = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,26,00,01,%s,ff,ff,ff"; // 02 = day, 04 = night
+    function setDisplayMode(mode, group) {
+      app.debug('setDisplayMode: Using group: %s (%s)', group, networkGroups[group])
+      var PGN130845_dayNight = "%s,3,130845,%s,255,0e,41,9f,ff,ff,%s,ff,ff,26,00,01,%s,ff,ff,ff"; // 02 = day, 04 = night
       if (mode == 'day') {
-        var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, '02');
+        var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, networkGroups[group], '02');
         sendN2k([msg]);
       }
       if (mode == 'night') {
-        var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, '04');
+        var msg = util.format(PGN130845_dayNight, (new Date()).toISOString(), sourceAddress, networkGroups[group], '04');
         sendN2k([msg]);
       }
     }
 
-    function setBacklightLevel(level) {
-      var PGN130845_backlightLevel = "%s,3,130845,%s,255,0e,41,9f,ff,ff,01,ff,ff,12,00,01,%s,ff,ff,ff"; 
-      var msg = util.format(PGN130845_backlightLevel, (new Date()).toISOString(), sourceAddress, intToHex(level*10));
+    function setBacklightLevel(level, group) {
+      app.debug('setBacklightLevel: Using group: %s (%s)', group, networkGroups[group])
+      var PGN130845_backlightLevel = "%s,3,130845,%s,255,0e,41,9f,ff,ff,%s,ff,ff,12,00,01,%s,ff,ff,ff"; 
+      var msg = util.format(PGN130845_backlightLevel, (new Date()).toISOString(), sourceAddress, networkGroups[group], intToHex(level*10));
       sendN2k([msg]);
     }
 
@@ -169,6 +182,13 @@ module.exports = function(app) {
     title: PLUGIN_NAME,
     type: 'object',
     properties: {
+      group: {
+        type: 'string',
+        title: 'Network group',
+        enum: ['Default', '1', '2', '3', '4', '5', '6'],
+        enumNames: ['Default', '1', '2', '3', '4', '5', '6'],
+        default: 'Default'
+      },
       source: {
         type: 'string',
         title: 'Select which source should be used to auto adjust the displays',
