@@ -37,12 +37,14 @@ module.exports = function(app) {
       }
       ]
     }
-    options.config.forEach(config => {
-      localSubscription.subscribe.push(
-      {
-        path: config.Lux['path']  // For lux based
+    if (typeof options.config != 'undefined') {
+      options.config.forEach(config => {
+        localSubscription.subscribe.push(
+        {
+          path: config.Lux['path']  // For lux based
+        })
       })
-    })
+    }
 
     app.subscriptionmanager.subscribe(
       localSubscription,
@@ -87,7 +89,17 @@ module.exports = function(app) {
 	              sendUpdate(mode, backlightLevel)
 	              break;
 	            case 'lux':
-	              if (path != config.Lux['path']) break;
+	              if (path != config.Lux.path) break;
+                config.Lux.table.forEach(element => {
+                  if (Number(value) >= Number(element.luxMin) && Number(value) <= Number(element.luxMax)) {
+                    var mode = element.dayNight
+                    var backlightLevel = element.backlightLevel
+			              app.debug('Setting display mode to %s and backlight level to %s', mode, backlightLevel);
+			              setDisplayMode(mode, group);
+			              setBacklightLevel(backlightLevel, group);
+	                  sendUpdate(mode, backlightLevel)
+                  }
+                })
 	              break;
 	          }
           })
