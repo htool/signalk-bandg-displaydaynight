@@ -1,5 +1,5 @@
 const util = require('util')
-const PLUGIN_ID = 'signalk-bandg-displaydayNight';
+const PLUGIN_ID = 'signalk-bandg-displaydaynight';
 const PLUGIN_NAME = 'Auto adjust B&G display mode';
 var sourceAddress = 1; // Gets overwritten by candevice
 var networkGroups = {
@@ -13,6 +13,8 @@ var networkGroups = {
 
 var unsubscribes = [];
 
+var lastState = {};
+
 module.exports = function(app) {
   var plugin = {};
   var ws;
@@ -25,6 +27,7 @@ module.exports = function(app) {
     plugin.options = options;
     app.debug('Plugin started');
     app.debug('Schema: %s', JSON.stringify(options));
+    lastState = {};
 
     let localSubscription = {
       context: 'vessels.self',
@@ -65,6 +68,13 @@ module.exports = function(app) {
 	            case 'mode':
 	              if (path != 'environment.mode') break;
 	              var dayNight = value
+
+                if (config.Mode['updateOnce']) {
+                  if (dayNight == lastState[group])
+                    break
+                  lastState[group] = dayNight
+                }
+
 			          if (dayNight == 'night') {
 			            setDisplayMode(dayNight, group)
 			            setBacklightLevel(config.Mode['nightLevel'], group)
@@ -81,7 +91,15 @@ module.exports = function(app) {
 	              if (path != 'environment.sun') break;
 	              var sunMode = value
 			          app.debug('environment.sun: %s', sunMode);
+
 	              var mode = config.Sun[sunMode]['mode'];
+
+                if (config.Sun['updateOnce']) {
+                  if (sunMode == lastState[group])
+                    break
+                  lastState[group] = sunMode
+                }
+
 	              var backlightLevel = config.Sun[sunMode]['backlight'];
 			          app.debug('Setting display mode to %s and backlight level to %s', mode, backlightLevel);
 			          setDisplayMode(mode, group);
@@ -218,6 +236,11 @@ module.exports = function(app) {
 			        description: 'Adjust the display mode based on `environment.mode` (derived-data). Below the backlight level can be set for day and night mode.',
 			        type: 'object',
 			        properties: {
+			          updateOnce: {
+			            type: 'boolean',
+			            title: 'Update display mode only when environment.mode changes.',
+			            default: true,
+			          },
 			          dayLevel: {
 			            type: 'number',
 			            title: 'Backlight level in day mode (1-10)',
@@ -235,6 +258,11 @@ module.exports = function(app) {
 			        description: 'Adjust the display mode based on `environment.sun` (derived-data). Below the display mode and backlight level can be set for each mode.',
 			        type: 'object',
 			        properties: {
+			          updateOnce: {
+			            type: 'boolean',
+			            title: 'Update display mode only when environment.sun changes.',
+			            default: true,
+			          },
 			          dawn: {
 			            type: 'object',
 			            title: 'Dawn',
