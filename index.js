@@ -29,6 +29,9 @@ module.exports = function(app) {
     app.debug('Schema: %s', JSON.stringify(options));
     lastState = {};
 
+    //api for adjustments
+    app.registerPutHandler('vessels.self', 'environment.displayMode.control', doChangeDisplayMode, PLUGIN_ID);
+
     let localSubscription = {
       context: 'vessels.self',
       subscribe: [
@@ -123,11 +126,35 @@ module.exports = function(app) {
           })
         })
       }
-
     );
 
     // Plugin code here
 		
+    function doChangeDisplayMode(context, path, value, callback)
+    {
+      app.debug("Change Display Mode PUT: " + JSON.stringify(value))
+  
+      //don't force group use
+      if (!(value.group in networkGroups))
+        value.group = 'Default';
+
+      //did we send a mode?
+      if (!(value.mode in ['day', 'night']))
+      {
+        app.debug(`Update display daynight mode: ${value.mode}`)
+        setDisplayMode(value.mode, value.group)
+      }
+      
+      //did we give a valid value?
+      if (parseInt(value.backlight) >= 1 && parseInt(value.backlight) <= 10)
+      {
+        app.debug(`Update display backlight: ${value.backlight}`)
+        setBacklightLevel(parseInt(value.backlight), value.group)
+      }
+
+      return { state: 'COMPLETED', statusCode: 200 };
+    }    
+    
     function sendN2k(msgs) {
       app.debug("n2k_msg: " + msgs)
       msgs.map(function(msg) { app.emit('nmea2000out', msg)})
@@ -227,8 +254,8 @@ module.exports = function(app) {
 			      source: {
 			        type: 'string',
 			        title: 'Select which source should be used to auto adjust the displays',
-			        enum: ['mode', 'sun', 'lux'],
-			        enumNames: ['Mode based', 'Sun based', 'Lux based'],
+			        enum: ['mode', 'sun', 'lux', 'none'],
+			        enumNames: ['Mode based', 'Sun based', 'Lux based', 'None / External (Use PUT interface)'],
 			        default: 'mode'
 			      },
 			      Mode: {
