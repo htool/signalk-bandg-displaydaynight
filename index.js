@@ -1,5 +1,5 @@
 const util = require('util')
-const PLUGIN_ID = 'signalk-bandg-displaydaynight';
+const PLUGIN_ID = 'signalk-bandg-displaydayNight';
 const PLUGIN_NAME = 'Auto adjust B&G display mode';
 var sourceAddress = 1; // Gets overwritten by candevice
 var networkGroups = {
