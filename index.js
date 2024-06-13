@@ -19,6 +19,7 @@ module.exports = function(app) {
   var plugin = {};
   var ws;
 
+
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
   plugin.description = 'A plugin that auto adjusts B&G display mode';
@@ -27,7 +28,8 @@ module.exports = function(app) {
     plugin.options = options;
     app.debug('Plugin started');
     app.debug('Schema: %s', JSON.stringify(options));
-    lastState = {};
+    var lastState = {};
+    var runMode = 'mode'
 
     //api for adjustments
     app.registerPutHandler('vessels.self', 'environment.displayMode.control', doChangeDisplayMode, PLUGIN_ID);
@@ -64,7 +66,6 @@ module.exports = function(app) {
           var path = u['values'][0]['path']
           var value = u['values'][0]['value']
           options.config.forEach(config => {
-            var runMode = config['source'];
             var group = config.group
             app.debug(`RunMode: ${runMode} group: ${group} luxPath: ${config.Lux['path']}`)
 	          switch (runMode) {
@@ -89,6 +90,10 @@ module.exports = function(app) {
 			            app.debug('Setting display mode to %s and backlight level to %s', dayNight, config.Mode['dayLevel'])
 	                sendUpdate(dayNight, config.Mode['dayLevel'])
 	              }
+                if (config['source'] != 'mode') { 
+                  app.debug('Used backup mode \'mode\', switching to \'sun\'')
+                  runMode = 'sun'
+                }
 	              break;
 	            case 'sun':
 	              if (path != 'environment.sun') break;
@@ -108,6 +113,10 @@ module.exports = function(app) {
 			          setDisplayMode(mode, group);
 			          setBacklightLevel(backlightLevel, group);
 	              sendUpdate(mode, backlightLevel)
+                if (config['source'] != 'sun') { 
+                  app.debug('Used backup mode \'sun\', switching to \'lux\'')
+                  runMode = 'lux'
+                }
 	              break;
 	            case 'lux':
 	              if (path != config.Lux.path) break;
