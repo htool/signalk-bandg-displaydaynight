@@ -68,6 +68,10 @@ module.exports = function(app) {
           options.config.forEach(config => {
             var group = config.group
             app.debug(`RunMode: ${runMode} group: ${group} luxPath: ${config.Lux['path']}`)
+            if (config.source == 'lux' && path == config.Lux.path) { 
+              app.debug('Switching to runMode \'lux\'')
+              runMode = 'lux'
+            }
 	          switch (runMode) {
 	            case 'mode':
 	              if (path != 'environment.mode') break;
@@ -113,10 +117,6 @@ module.exports = function(app) {
 			          setDisplayMode(mode, group);
 			          setBacklightLevel(backlightLevel, group);
 	              sendUpdate(mode, backlightLevel)
-                if (config['source'] != 'sun') { 
-                  app.debug('Used backup mode \'sun\', switching to \'lux\'')
-                  runMode = 'lux'
-                }
 	              break;
 	            case 'lux':
 	              if (path != config.Lux.path) break;
