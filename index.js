@@ -66,6 +66,11 @@ module.exports = function(app) {
           var path = u['values'][0]['path']
           var value = u['values'][0]['value']
           options.config.forEach(config => {
+
+            //always use external control if selected
+            if (config.source == 'none')
+              return;
+        
             var group = config.group
             app.debug(`RunMode: ${runMode} group: ${group} luxPath: ${config.Lux['path']}`)
             if (config.source == 'lux' && path == config.Lux.path) { 
