@@ -1,6 +1,6 @@
 {
   "name": "signalk-bandg-displaydaynight",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Auto adjust B&G display mode",
   "main": "index.js",
   "scripts": {
