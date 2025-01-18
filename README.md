@@ -1,4 +1,4 @@
-# signalk-bang-displaydaynight
+# signalk-bandg-displaydaynight
 Auto adjust the display mode (night/day/backlight) based on different modes.
 Config can be created per network group.
 
