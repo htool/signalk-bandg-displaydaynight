@@ -227,7 +227,10 @@ module.exports = function(app) {
         
         // app.debug(`Executing command for Group ${group}: Mode=${mode}, Level=${level}`);
         setDisplayMode(mode, group);
-        setBacklightLevel(level, group);
+		// add a delay to the backlight level so the instrument can finish drawing from day to night mode, avoiding crashes
+		setTimeout(() => {
+            setBacklightLevel(level, group);
+        }, 1000);
         sendUpdate(mode, level);
     }
     
