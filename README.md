@@ -1,6 +1,12 @@
 # signalk-bandg-displaydaynight
 Auto adjust the display mode (night/day/backlight) based on different modes.
 
+## Convergence (showcase)
+
+Lighting policy is moving to [signalk-n2k-displays](https://github.com/htool/signalk-n2k-displays) (`showcase/instrument-lighting`). This package will become a stub: map the 1–10 blob onto intent paths and **stop emitting PGN 130845**. Encode belongs in [signalk-to-nmea2000](https://github.com/SignalK/signalk-to-nmea2000). See [AGENTS.md](AGENTS.md).
+
+Until that stub ships, behaviour below is the current plugin.
+
 ### Run Modes
 The plugin currently supports 4 run modes:
 #### Mode
