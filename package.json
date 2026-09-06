@@ -1,10 +1,10 @@
 {
   "name": "signalk-bandg-displaydaynight",
   "version": "1.0.16",
-  "description": "Auto adjust B&G display mode",
+  "description": "Compat stub: map displayMode PUT onto electrical.displays intent. Does not emit NMEA 2000.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/stub.js"
   },
   "author": "Hans Tool <hans@defect.org>",
   "keywords": [
@@ -14,9 +14,6 @@
     "signalk-category-chart-plotters",
     "signalk-category-hardware"
   ],
-  "dependencies": {
-    "util": "^0.12.4"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/htool/signalk-bandg-displaydaynight"
