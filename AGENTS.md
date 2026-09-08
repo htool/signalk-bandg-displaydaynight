@@ -11,3 +11,4 @@ Read that repo’s `AGENTS.md`, `docs/architecture.md`, and ADR 0001 / 0004 befo
 - Do not add simpleCan.
 - Do not implement lighting policy (lux / sun / time). That is n2k-displays.
 - Feature F11 in the survivor `docs/features.md`.
+- Encode/HEX traps: survivor [docs/dev-lessons.md](https://github.com/htool/signalk-n2k-displays/blob/showcase/instrument-lighting/docs/dev-lessons.md).
