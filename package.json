@@ -17,5 +17,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/htool/signalk-bandg-displaydaynight"
+  },
+  "signalk": {
+    "displayName": "B&G display day/night",
+    "recommends": [
+      "signalk-n2k-displays"
+    ]
   }
 }
